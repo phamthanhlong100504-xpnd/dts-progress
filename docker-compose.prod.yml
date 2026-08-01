@@ -1,0 +1,37 @@
+# Production compose for progress-service (dts-progress).
+# Deployed by .github/workflows/deploy.yml: GHCR image is pushed by CI, pulled here.
+services:
+  dts-progress:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-phamthanhlong100504-xpnd}/dts-progress:latest
+    container_name: dts-progress
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    ports:
+      - "${SERVER_PORT:-8084}:8083"
+    mem_limit: 256m
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xms64m -Xmx128m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m -Xss512k
+      - SPRING_PROFILES_ACTIVE=docker
+      - SERVER_PORT=8083
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-dts_progress}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_ISSUER=${JWT_ISSUER:-dts-identity-service}
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://dts-identity-service:8081}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-media-kafka:9092}
+      - SPRING_KAFKA_LISTENER_AUTO_STARTUP=${SPRING_KAFKA_LISTENER_AUTO_STARTUP:-false}
+      - EUREKA_ENABLED=${EUREKA_ENABLED:-false}
+    networks:
+      - dts-network
+
+networks:
+  dts-network:
+    external: true

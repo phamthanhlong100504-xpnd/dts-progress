@@ -1,0 +1,11 @@
+target/
+.git/
+.agents/
+*.md
+.gitignore
+.gitmodules
+.env*
+docker-compose*.yml
+Dockerfile
+.mvn/
+mvnw*
