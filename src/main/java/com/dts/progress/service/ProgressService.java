@@ -104,6 +104,17 @@ public class ProgressService {
 
     @Transactional
     public ChapterProgressResponse updateChapterProgress(UUID userId, UpdateChapterProgressRequest request) {
+        // Sanity: correct answers can't exceed questions answered, and wrong+correct can't exceed answered
+        if (request.correctCount() > request.questionsCount()) {
+            throw BusinessException.badRequest("correctCount (" + request.correctCount()
+                    + ") cannot exceed questionsCount (" + request.questionsCount() + ")");
+        }
+        if (request.wrongCount() != null
+                && request.correctCount() + request.wrongCount() > request.questionsCount()) {
+            throw BusinessException.badRequest(
+                    "correctCount + wrongCount cannot exceed questionsCount");
+        }
+
         ChapterProgress cp = chapterProgressRepository
                 .findByUserIdAndChapterId(userId, request.chapterId())
                 .orElseGet(() -> ChapterProgress.builder()
@@ -121,16 +132,20 @@ public class ProgressService {
             cp.start();
         }
 
-        cp.setQuestionsAnswered(cp.getQuestionsAnswered() + request.correctCount() + 1);
-        cp.setCorrectCount(cp.getCorrectCount() + request.correctCount());
+        int total = cp.getQuestionsTotal();
+        int answered = Math.min(cp.getQuestionsAnswered() + request.questionsCount(), total);
+        int correct = Math.min(cp.getCorrectCount() + request.correctCount(), answered);
 
-        if (cp.getQuestionsTotal() > 0) {
-            cp.setScore(BigDecimal.valueOf(Math.round(
-                    (double) cp.getCorrectCount() / cp.getQuestionsTotal() * 10000.0) / 100.0));
+        cp.setQuestionsAnswered(answered);
+        cp.setCorrectCount(correct);
+
+        if (total > 0) {
+            double score = Math.min((double) correct / total * 100.0, 100.0);
+            cp.setScore(BigDecimal.valueOf(Math.round(score * 100.0) / 100.0));
         }
 
-        // Auto-complete if all questions answered
-        if (cp.getQuestionsAnswered() >= cp.getQuestionsTotal()) {
+        // Auto-complete once every question has been answered at least once
+        if (answered >= total) {
             cp.complete();
         }
 

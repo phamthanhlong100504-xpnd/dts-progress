@@ -17,6 +17,8 @@ public interface ProgressMapper {
 
     default Double computeCompletionPercent(ChapterProgress entity) {
         if (entity.getQuestionsTotal() == 0) return 0.0;
-        return Math.round((double) entity.getQuestionsAnswered() / entity.getQuestionsTotal() * 10000.0) / 100.0;
+        double percent = (double) entity.getQuestionsAnswered() / entity.getQuestionsTotal() * 10000.0;
+        // Clamp at 100 — legacy rows may hold answered > total from the old accumulator
+        return Math.min(Math.round(percent) / 100.0, 100.0);
     }
 }

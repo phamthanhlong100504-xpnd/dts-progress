@@ -7,12 +7,14 @@ import com.dts.progress.dto.response.DashboardResponse;
 import com.dts.progress.dto.response.SessionHistoryResponse;
 import com.dts.progress.dto.response.StreakResponse;
 import com.dts.progress.entity.UserProgress;
+import com.dts.progress.exception.BusinessException;
 import com.dts.progress.repository.UserProgressRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +22,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@EmbeddedKafka
 @Transactional
 class ProgressServiceTest {
 
@@ -98,7 +102,7 @@ class ProgressServiceTest {
     @DisplayName("Should update chapter progress")
     void updateChapterProgress() {
         UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
-                1, "Khái niệm và quy tắc", 25, 10);
+                1, "Khái niệm và quy tắc", 25, 10, 8, 2);
 
         ChapterProgressResponse response = progressService.updateChapterProgress(testUserId, request);
 
@@ -107,6 +111,9 @@ class ProgressServiceTest {
         assertThat(response.chapterName()).isEqualTo("Khái niệm và quy tắc");
         assertThat(response.status()).isEqualTo("IN_PROGRESS");
         assertThat(response.questionsTotal()).isEqualTo(25);
+        assertThat(response.questionsAnswered()).isEqualTo(10);
+        assertThat(response.correctCount()).isEqualTo(8);
+        assertThat(response.completionPercent()).isEqualTo(40.0);
     }
 
     @Test
@@ -154,14 +161,49 @@ class ProgressServiceTest {
     @DisplayName("Should auto-complete chapter when all questions answered")
     void autoCompleteChapter() {
         UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
-                1, "Biển báo đường bộ", 25, 25);
+                1, "Biển báo đường bộ", 25, 25, 21, 4);
 
         ChapterProgressResponse response = progressService.updateChapterProgress(testUserId, request);
 
-        // After 26 answers, all 25 questions should be completed
-        // The first call adds (correctCount + 1) to answered = 25 + 1 = 26 >= 25
-        assertThat(response.questionsAnswered()).isEqualTo(26);
+        assertThat(response.questionsAnswered()).isEqualTo(25);
+        assertThat(response.correctCount()).isEqualTo(21);
+        assertThat(response.completionPercent()).isEqualTo(100.0);
+        assertThat(response.score()).isEqualTo(84.0);
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.completedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should clamp answered/correct to questionsTotal")
+    void clampBeyondTotal() {
+        // Client reports more answered than the chapter contains
+        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
+                1, "Khởi hành", 25, 30, 20, 10);
+
+        ChapterProgressResponse response = progressService.updateChapterProgress(testUserId, request);
+
+        assertThat(response.questionsAnswered()).isEqualTo(25);
+        assertThat(response.correctCount()).isEqualTo(20);
+        assertThat(response.completionPercent()).isEqualTo(100.0);
+        assertThat(response.score()).isEqualTo(80.0);
+        assertThat(response.status()).isEqualTo("COMPLETED");
+
+        // Re-sending accumulates but is bounded by the cap — never exceeds total
+        progressService.updateChapterProgress(testUserId, request);
+        ChapterProgressResponse afterResend = progressService.getChapterProgress(testUserId).get(0);
+        assertThat(afterResend.questionsAnswered()).isEqualTo(25);
+        assertThat(afterResend.correctCount()).isEqualTo(25); // 20+20 clamped to answered
+        assertThat(afterResend.completionPercent()).isEqualTo(100.0);
+    }
+
+    @Test
+    @DisplayName("Should reject correctCount greater than questionsCount")
+    void rejectImpossibleCounts() {
+        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
+                1, "Khởi hành", 25, 10, 15, 0);
+
+        assertThatThrownBy(() -> progressService.updateChapterProgress(testUserId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("correctCount");
     }
 }

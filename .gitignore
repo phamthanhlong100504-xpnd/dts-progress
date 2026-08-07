@@ -35,3 +35,6 @@ mvnw.cmd
 
 # AI skill submodule — not part of the project
 .agents/
+
+# Postman API testing kit — generated artifacts with test credentials
+postman/

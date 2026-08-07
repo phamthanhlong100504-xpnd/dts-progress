@@ -14,6 +14,12 @@ public record UpdateChapterProgressRequest(
         @NotNull @Min(1)
         Integer questionsTotal,
 
+        @NotNull @Min(1)
+        Integer questionsCount,
+
         @NotNull @Min(0)
-        Integer correctCount
+        Integer correctCount,
+
+        @Min(0)
+        Integer wrongCount
 ) {}
