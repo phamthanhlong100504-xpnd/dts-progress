@@ -38,3 +38,6 @@ mvnw.cmd
 
 # Postman API testing kit — generated artifacts with test credentials
 postman/
+
+# Ops/verification scripts — contain VPS credentials & JWT secrets in plaintext
+scripts/
