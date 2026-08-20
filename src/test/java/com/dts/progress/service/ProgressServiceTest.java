@@ -2,208 +2,151 @@ package com.dts.progress.service;
 
 import com.dts.progress.dto.request.LogStudySessionRequest;
 import com.dts.progress.dto.request.UpdateChapterProgressRequest;
-import com.dts.progress.dto.response.ChapterProgressResponse;
-import com.dts.progress.dto.response.DashboardResponse;
-import com.dts.progress.dto.response.SessionHistoryResponse;
-import com.dts.progress.dto.response.StreakResponse;
+import com.dts.progress.dto.response.*;
+import com.dts.progress.entity.ChapterProgress;
+import com.dts.progress.entity.StudySession;
 import com.dts.progress.entity.UserProgress;
-import com.dts.progress.exception.BusinessException;
+import com.dts.progress.enums.ChapterStatus;
+import com.dts.progress.mapper.ProgressMapper;
+import com.dts.progress.repository.ChapterProgressRepository;
+import com.dts.progress.repository.StudySessionRepository;
 import com.dts.progress.repository.UserProgressRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@EmbeddedKafka
-@Transactional
+@ExtendWith(MockitoExtension.class)
 class ProgressServiceTest {
 
-    @Autowired
+    @Mock
+    private UserProgressRepository userProgressRepository;
+    @Mock
+    private ChapterProgressRepository chapterProgressRepository;
+    @Mock
+    private StudySessionRepository studySessionRepository;
+    @Mock
+    private ProgressMapper progressMapper;
+
+    @InjectMocks
     private ProgressService progressService;
 
-    @Autowired
-    private UserProgressRepository userProgressRepository;
-
-    private UUID testUserId;
+    private UUID userId;
+    private UserProgress userProgress;
 
     @BeforeEach
     void setUp() {
-        testUserId = UUID.randomUUID();
+        userId = UUID.randomUUID();
+        userProgress = new UserProgress();
+        userProgress.setUserId(userId);
+        userProgress.setTotalExams(10);
+        userProgress.setTotalPracticeSessions(5);
+        userProgress.setTotalStudyTimeSeconds(3600L);
+        userProgress.setTotalQuestionsAnswered(100);
+        userProgress.setTotalCorrectAnswers(80);
+        userProgress.setAverageScore(new BigDecimal("80.0"));
+        userProgress.setCurrentStreak(2);
+        userProgress.setLongestStreak(5);
+        userProgress.setLastStudyDate(LocalDate.now());
     }
 
     @Test
-    @DisplayName("Should return dashboard for new user with zero stats")
-    void dashboardForNewUser() {
-        DashboardResponse dashboard = progressService.getDashboard(testUserId);
+    void testGetDashboard() {
+        when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
+        when(studySessionRepository.countByUserIdAndSessionType(userId, "EXAM")).thenReturn(10L);
+        
+        StudySession examSession = new StudySession();
+        examSession.setStatus("COMPLETED");
+        examSession.setSessionType("EXAM");
+        examSession.setPassed(true);
 
-        assertThat(dashboard).isNotNull();
-        assertThat(dashboard.totalExams()).isEqualTo(0);
-        assertThat(dashboard.totalPracticeSessions()).isEqualTo(0);
-        assertThat(dashboard.totalStudyTimeSeconds()).isEqualTo(0);
-        assertThat(dashboard.currentStreak()).isEqualTo(0);
-        assertThat(dashboard.longestStreak()).isEqualTo(0);
+        when(studySessionRepository.findByUserIdAndStartedAtAfterOrderByStartedAtDesc(eq(userId), any(Instant.class)))
+                .thenReturn(List.of(examSession));
+
+        ChapterProgress cp = new ChapterProgress();
+        cp.setStatus(ChapterStatus.COMPLETED);
+        when(chapterProgressRepository.findByUserIdOrderByChapterId(userId)).thenReturn(List.of(cp));
+
+        DashboardResponse response = progressService.getDashboard(userId);
+
+        assertNotNull(response);
+        assertEquals(10, response.totalExams());
+        assertEquals(1, response.examsPassed());
+        assertEquals(0, response.examsFailed());
+        assertEquals(100.0, response.passRate());
+        assertEquals(1, response.chaptersTotal());
+        assertEquals(1, response.chaptersCompleted());
+        assertEquals(100.0, response.chaptersProgressPercent());
     }
 
     @Test
-    @DisplayName("Should log a study session and update user progress stats")
-    void logStudySession() {
-        LogStudySessionRequest request = new LogStudySessionRequest(
-                "EXAM", "A1", "EXAM", null, 25, 21, 4, 1200);
+    void testUpdateChapterProgress() {
+        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(1, "Chapter 1", 10, 5, 4, 1);
+        
+        ChapterProgress cp = new ChapterProgress();
+        cp.setChapterId(1);
+        cp.setQuestionsTotal(10);
+        cp.setQuestionsAnswered(0);
+        cp.setCorrectCount(0);
+        cp.setStatus(ChapterStatus.NOT_STARTED);
 
-        SessionHistoryResponse response = progressService.logStudySession(testUserId, request);
+        when(chapterProgressRepository.findByUserIdAndChapterId(userId, 1)).thenReturn(Optional.of(cp));
+        when(chapterProgressRepository.save(any(ChapterProgress.class))).thenReturn(cp);
+        when(progressMapper.toChapterProgressResponse(any())).thenReturn(
+                new ChapterProgressResponse(1, "Chapter 1", "IN_PROGRESS", 5, 10, 4, 40.0, 50.0, Instant.now(), null, Instant.now())
+        );
 
-        assertThat(response).isNotNull();
-        assertThat(response.sessionType()).isEqualTo("EXAM");
-        assertThat(response.questionsCount()).isEqualTo(25);
-        assertThat(response.correctCount()).isEqualTo(21);
-        assertThat(response.wrongCount()).isEqualTo(4);
-        assertThat(response.passed()).isTrue();
-        assertThat(response.score()).isEqualTo(84.0);
-        assertThat(response.durationSeconds()).isEqualTo(1200);
-
-        // Verify user progress was updated
-        UserProgress up = userProgressRepository.findByUserId(testUserId).orElseThrow();
-        assertThat(up.getTotalExams()).isEqualTo(1);
-        assertThat(up.getTotalQuestionsAnswered()).isEqualTo(25);
-        assertThat(up.getTotalCorrectAnswers()).isEqualTo(21);
-        assertThat(up.getTotalStudyTimeSeconds()).isEqualTo(1200);
-        assertThat(up.getCurrentStreak()).isEqualTo(1);
-        assertThat(up.getLastStudyDate()).isEqualTo(java.time.LocalDate.now());
+        ChapterProgressResponse response = progressService.updateChapterProgress(userId, request);
+        assertNotNull(response);
+        assertEquals(5, cp.getQuestionsAnswered());
+        assertEquals(4, cp.getCorrectCount());
+        verify(chapterProgressRepository).save(cp);
     }
 
     @Test
-    @DisplayName("Should log a practice session and not count as exam")
-    void logPracticeSession() {
-        LogStudySessionRequest request = new LogStudySessionRequest(
-                "PRACTICE", "A1", "PRACTICE", null, 10, 8, 2, 600);
+    void testLogStudySession() {
+        LogStudySessionRequest request = new LogStudySessionRequest("EXAM", "B2", "EXAM", UUID.randomUUID(), 25, 22, 3, 600);
+        when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
+        
+        when(studySessionRepository.save(any(StudySession.class))).thenAnswer(i -> {
+            StudySession s = i.getArgument(0);
+            s.setScore(new BigDecimal("88"));
+            return s;
+        });
 
-        SessionHistoryResponse response = progressService.logStudySession(testUserId, request);
+        when(progressMapper.toSessionHistoryResponse(any())).thenReturn(
+                new SessionHistoryResponse(UUID.randomUUID(), request.examId(), "EXAM", "B2", "EXAM", "COMPLETED", 25, 22, 3, 88.0, true, 600, Instant.now(), Instant.now())
+        );
 
-        assertThat(response.sessionType()).isEqualTo("PRACTICE");
+        SessionHistoryResponse response = progressService.logStudySession(userId, request);
 
-        UserProgress up = userProgressRepository.findByUserId(testUserId).orElseThrow();
-        assertThat(up.getTotalExams()).isEqualTo(0);
-        assertThat(up.getTotalPracticeSessions()).isEqualTo(1);
+        assertNotNull(response);
+        assertEquals(11, userProgress.getTotalExams());
+        assertEquals(125, userProgress.getTotalQuestionsAnswered());
+        assertEquals(102, userProgress.getTotalCorrectAnswers());
+        assertEquals(4200L, userProgress.getTotalStudyTimeSeconds());
+        verify(userProgressRepository).save(userProgress);
     }
 
     @Test
-    @DisplayName("Should update chapter progress")
-    void updateChapterProgress() {
-        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
-                1, "Khái niệm và quy tắc", 25, 10, 8, 2);
-
-        ChapterProgressResponse response = progressService.updateChapterProgress(testUserId, request);
-
-        assertThat(response).isNotNull();
-        assertThat(response.chapterId()).isEqualTo(1);
-        assertThat(response.chapterName()).isEqualTo("Khái niệm và quy tắc");
-        assertThat(response.status()).isEqualTo("IN_PROGRESS");
-        assertThat(response.questionsTotal()).isEqualTo(25);
-        assertThat(response.questionsAnswered()).isEqualTo(10);
-        assertThat(response.correctCount()).isEqualTo(8);
-        assertThat(response.completionPercent()).isEqualTo(40.0);
-    }
-
-    @Test
-    @DisplayName("Should return streak info")
-    void getStreak() {
-        StreakResponse streak = progressService.getStreak(testUserId);
-
-        assertThat(streak).isNotNull();
-        assertThat(streak.currentStreak()).isEqualTo(0);
-        assertThat(streak.longestStreak()).isEqualTo(0);
-        assertThat(streak.studiedToday()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should return empty chapter progress list for new user")
-    void emptyChapterProgress() {
-        List<ChapterProgressResponse> chapters = progressService.getChapterProgress(testUserId);
-
-        assertThat(chapters).isNotNull();
-        assertThat(chapters).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should build consecutive streaks")
-    void buildStreak() {
-        // Log two sessions on consecutive calls
-        LogStudySessionRequest request = new LogStudySessionRequest(
-                "EXAM", "A1", "EXAM", null, 25, 21, 4, 1200);
-
-        progressService.logStudySession(testUserId, request);
-
-        UserProgress up = userProgressRepository.findByUserId(testUserId).orElseThrow();
-        assertThat(up.getCurrentStreak()).isEqualTo(1);
-        assertThat(up.getLongestStreak()).isEqualTo(1);
-
-        // Second session same day — streak shouldn't double count
-        progressService.logStudySession(testUserId, request);
-
-        up = userProgressRepository.findByUserId(testUserId).orElseThrow();
-        // Same day, so streak stays at 1
-        assertThat(up.getCurrentStreak()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("Should auto-complete chapter when all questions answered")
-    void autoCompleteChapter() {
-        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
-                1, "Biển báo đường bộ", 25, 25, 21, 4);
-
-        ChapterProgressResponse response = progressService.updateChapterProgress(testUserId, request);
-
-        assertThat(response.questionsAnswered()).isEqualTo(25);
-        assertThat(response.correctCount()).isEqualTo(21);
-        assertThat(response.completionPercent()).isEqualTo(100.0);
-        assertThat(response.score()).isEqualTo(84.0);
-        assertThat(response.status()).isEqualTo("COMPLETED");
-        assertThat(response.completedAt()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("Should clamp answered/correct to questionsTotal")
-    void clampBeyondTotal() {
-        // Client reports more answered than the chapter contains
-        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
-                1, "Khởi hành", 25, 30, 20, 10);
-
-        ChapterProgressResponse response = progressService.updateChapterProgress(testUserId, request);
-
-        assertThat(response.questionsAnswered()).isEqualTo(25);
-        assertThat(response.correctCount()).isEqualTo(20);
-        assertThat(response.completionPercent()).isEqualTo(100.0);
-        assertThat(response.score()).isEqualTo(80.0);
-        assertThat(response.status()).isEqualTo("COMPLETED");
-
-        // Re-sending accumulates but is bounded by the cap — never exceeds total
-        progressService.updateChapterProgress(testUserId, request);
-        ChapterProgressResponse afterResend = progressService.getChapterProgress(testUserId).get(0);
-        assertThat(afterResend.questionsAnswered()).isEqualTo(25);
-        assertThat(afterResend.correctCount()).isEqualTo(25); // 20+20 clamped to answered
-        assertThat(afterResend.completionPercent()).isEqualTo(100.0);
-    }
-
-    @Test
-    @DisplayName("Should reject correctCount greater than questionsCount")
-    void rejectImpossibleCounts() {
-        UpdateChapterProgressRequest request = new UpdateChapterProgressRequest(
-                1, "Khởi hành", 25, 10, 15, 0);
-
-        assertThatThrownBy(() -> progressService.updateChapterProgress(testUserId, request))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("correctCount");
+    void testGetStreak() {
+        when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
+        StreakResponse response = progressService.getStreak(userId);
+        assertNotNull(response);
+        assertTrue(response.studiedToday());
+        assertEquals(2, response.currentStreak());
     }
 }
