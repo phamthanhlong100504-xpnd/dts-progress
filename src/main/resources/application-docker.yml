@@ -3,3 +3,5 @@ spring:
     url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:dts_progress}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    listener:
+      auto-startup: ${SPRING_KAFKA_LISTENER_AUTO_STARTUP:false}
