@@ -27,7 +27,7 @@ services:
       - JWT_ISSUER=${JWT_ISSUER:-dts-identity-service}
       - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://dts-identity-service:8081}
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-media-kafka:9092}
-      - SPRING_KAFKA_LISTENER_AUTO_STARTUP=${SPRING_KAFKA_LISTENER_AUTO_STARTUP:-false}
+      - SPRING_KAFKA_LISTENER_AUTO_STARTUP=${SPRING_KAFKA_LISTENER_AUTO_STARTUP:-true}
       - EUREKA_ENABLED=${EUREKA_ENABLED:-true}
       - EUREKA_URI=${EUREKA_URI:-http://eureka-server:8761/eureka}
     networks:
