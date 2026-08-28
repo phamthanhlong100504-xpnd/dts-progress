@@ -19,7 +19,7 @@ public class UserEventConsumer {
 
     @KafkaListener(topics = "${spring.kafka.topics.user-events}", groupId = "${spring.kafka.consumer.group-id}")
     public void handleUserEvent(UserEvent event) {
-        log.info("Received user event: type={}, userId={}", event.eventType(), event.payload().userId());
+        log.info("Received user event: type={}, userId={}", event.eventType(), event.userId());
 
         switch (event.eventType()) {
             case "USER_CREATED" -> handleUserCreated(event);
@@ -30,29 +30,35 @@ public class UserEventConsumer {
     }
 
     private void handleUserCreated(UserEvent event) {
-        UserEvent.UserPayload payload = event.payload();
-        if (userProgressRepository.existsByUserId(payload.userId())) {
-            log.debug("UserProgress already exists for userId={}, skipping", payload.userId());
+        if (event.userId() == null) {
+            log.warn("User event without userId, skipping");
+            return;
+        }
+        if (userProgressRepository.existsByUserId(event.userId())) {
+            log.debug("UserProgress already exists for userId={}, skipping", event.userId());
             return;
         }
         UserProgress progress = UserProgress.builder()
-                .userId(payload.userId())
-                .username(payload.username() != null ? payload.username() : "unknown")
+                .userId(event.userId())
+                .username(event.username() != null ? event.username() : "unknown")
                 .build();
         userProgressRepository.save(progress);
-        log.info("Created UserProgress for userId={}", payload.userId());
+        log.info("Created UserProgress for userId={}", event.userId());
     }
 
     private void handleUserUpdated(UserEvent event) {
-        UserEvent.UserPayload payload = event.payload();
-        Optional<UserProgress> existing = userProgressRepository.findByUserId(payload.userId());
+        if (event.userId() == null) {
+            log.warn("User event without userId, skipping");
+            return;
+        }
+        Optional<UserProgress> existing = userProgressRepository.findByUserId(event.userId());
         if (existing.isPresent()) {
             UserProgress progress = existing.get();
-            if (payload.username() != null) {
-                progress.setUsername(payload.username());
+            if (event.username() != null) {
+                progress.setUsername(event.username());
             }
             userProgressRepository.save(progress);
-            log.debug("Updated UserProgress for userId={}", payload.userId());
+            log.debug("Updated UserProgress for userId={}", event.userId());
         } else {
             // Create if not exists (event ordering edge case)
             handleUserCreated(event);
@@ -60,11 +66,14 @@ public class UserEventConsumer {
     }
 
     private void handleUserDeleted(UserEvent event) {
-        UserEvent.UserPayload payload = event.payload();
-        userProgressRepository.findByUserId(payload.userId())
+        if (event.userId() == null) {
+            log.warn("User event without userId, skipping");
+            return;
+        }
+        userProgressRepository.findByUserId(event.userId())
                 .ifPresent(progress -> {
                     userProgressRepository.delete(progress);
-                    log.info("Deleted UserProgress for userId={}", payload.userId());
+                    log.info("Deleted UserProgress for userId={}", event.userId());
                 });
     }
 }
