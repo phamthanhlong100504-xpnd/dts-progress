@@ -2,7 +2,7 @@
 # Deployed by .github/workflows/deploy.yml: GHCR image is pushed by CI, pulled here.
 services:
   dts-progress:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-phamthanhlong100504-xpnd}/dts-progress:latest
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-phamthanhlong100504-xpnd}/progress-service:latest
     container_name: dts-progress
     restart: unless-stopped
     healthcheck:
