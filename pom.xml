@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -15,7 +15,7 @@
     <artifactId>progress-service</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>DTS Progress Service</name>
-    <description>Progress Service - Theo dõi tiến độ học tập, thống kê và lịch sử thi cho hệ thống lái xe</description>
+    <description>Progress Service - Theo dÃµi tiáº¿n Ä‘á»™ há»c táº­p, thá»‘ng kÃª vÃ  lá»‹ch sá»­ thi cho há»‡ thá»‘ng lÃ¡i xe</description>
 
     <properties>
         <java.version>21</java.version>
@@ -83,7 +83,7 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
-        <!-- Kafka (nhận event từ identity-service: user sync) -->
+        <!-- Kafka (nháº­n event tá»« identity-service: user sync) -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
@@ -94,7 +94,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- JWT (dùng để validate token từ identity-service) -->
+        <!-- JWT (dÃ¹ng Ä‘á»ƒ validate token tá»« identity-service) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -161,6 +161,10 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
     </dependencies>
 
