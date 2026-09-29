@@ -1,4 +1,4 @@
-﻿package com.dts.progress.config;
+package com.dts.progress.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
