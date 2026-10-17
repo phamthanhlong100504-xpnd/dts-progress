@@ -1,6 +1,7 @@
 package com.dts.progress.service;
 
 import com.dts.progress.dto.request.LogStudySessionRequest;
+import com.dts.progress.dto.event.PracticeExamFinishedEvent;
 import com.dts.progress.dto.request.UpdateChapterProgressRequest;
 import com.dts.progress.dto.response.*;
 import com.dts.progress.entity.ChapterProgress;
@@ -40,6 +41,10 @@ class ProgressServiceTest {
     private StudySessionRepository studySessionRepository;
     @Mock
     private ProgressMapper progressMapper;
+    @Mock
+    private PracticeProgressReceiptClient practiceProgressReceiptClient;
+    @Mock
+    private CanonicalExamProgressService canonicalExamProgressService;
 
     @InjectMocks
     private ProgressService progressService;
@@ -66,7 +71,6 @@ class ProgressServiceTest {
     @Test
     void testGetDashboard() {
         when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
-        when(studySessionRepository.countByUserIdAndSessionType(userId, "EXAM")).thenReturn(10L);
         
         StudySession examSession = new StudySession();
         examSession.setStatus("COMPLETED");
@@ -118,27 +122,23 @@ class ProgressServiceTest {
 
     @Test
     void testLogStudySession() {
-        LogStudySessionRequest request = new LogStudySessionRequest("EXAM", "B2", "EXAM", UUID.randomUUID(), 25, 22, 3, 600);
-        when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
-        
-        when(studySessionRepository.save(any(StudySession.class))).thenAnswer(i -> {
-            StudySession s = i.getArgument(0);
-            s.setScore(new BigDecimal("88"));
-            return s;
-        });
+        UUID examId = UUID.randomUUID();
+        LogStudySessionRequest request = new LogStudySessionRequest(
+                "EXAM", "B2", "EXAM", examId, 25, 22, 3, 600);
+        PracticeExamFinishedEvent canonical = mock(PracticeExamFinishedEvent.class);
+        SessionHistoryResponse expected = new SessionHistoryResponse(
+                UUID.randomUUID(), examId, "EXAM", "B2", "EXAM",
+                "COMPLETED", 25, 22, 3, 88.0, true, 600,
+                Instant.now(), Instant.now());
+        when(practiceProgressReceiptClient.getCanonical(
+                userId, examId, "Bearer test")).thenReturn(canonical);
+        when(canonicalExamProgressService.apply(canonical)).thenReturn(expected);
 
-        when(progressMapper.toSessionHistoryResponse(any())).thenReturn(
-                new SessionHistoryResponse(UUID.randomUUID(), request.examId(), "EXAM", "B2", "EXAM", "COMPLETED", 25, 22, 3, 88.0, true, 600, Instant.now(), Instant.now())
-        );
+        SessionHistoryResponse response = progressService.logStudySession(
+                userId, request, "Bearer test");
 
-        SessionHistoryResponse response = progressService.logStudySession(userId, request);
-
-        assertNotNull(response);
-        assertEquals(11, userProgress.getTotalExams());
-        assertEquals(125, userProgress.getTotalQuestionsAnswered());
-        assertEquals(102, userProgress.getTotalCorrectAnswers());
-        assertEquals(4200L, userProgress.getTotalStudyTimeSeconds());
-        verify(userProgressRepository).save(userProgress);
+        assertSame(expected, response);
+        verifyNoInteractions(studySessionRepository, userProgressRepository);
     }
 
     @Test

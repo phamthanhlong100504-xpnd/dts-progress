@@ -2,6 +2,8 @@ package com.dts.progress.service;
 
 import com.dts.progress.entity.UserProgress;
 import com.dts.progress.repository.UserProgressRepository;
+import com.dts.progress.repository.StudySessionRepository;
+import com.dts.progress.mapper.ProgressMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,10 @@ class StreakServiceTest {
 
     @Mock
     private UserProgressRepository userProgressRepository;
+    @Mock
+    private StudySessionRepository studySessionRepository;
+    @Mock
+    private ProgressMapper progressMapper;
 
     @InjectMocks
     private ProgressService progressService;
@@ -44,8 +50,9 @@ class StreakServiceTest {
     void testFirstStudyDay_InitializesStreak() {
         when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
 
+        when(studySessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         progressService.logStudySession(userId, new com.dts.progress.dto.request.LogStudySessionRequest(
-                "PRACTICE", "B2", "PRACTICE", UUID.randomUUID(), 10, 8, 2, 300));
+                "PRACTICE", "B2", "PRACTICE", null, 10, 8, 2, 300));
 
         assertEquals(1, userProgress.getCurrentStreak());
         assertEquals(1, userProgress.getLongestStreak());
@@ -61,8 +68,9 @@ class StreakServiceTest {
 
         when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
 
+        when(studySessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         progressService.logStudySession(userId, new com.dts.progress.dto.request.LogStudySessionRequest(
-                "PRACTICE", "B2", "PRACTICE", UUID.randomUUID(), 10, 8, 2, 300));
+                "PRACTICE", "B2", "PRACTICE", null, 10, 8, 2, 300));
 
         assertEquals(3, userProgress.getCurrentStreak());
         assertEquals(3, userProgress.getLongestStreak());
@@ -78,8 +86,9 @@ class StreakServiceTest {
 
         when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
 
+        when(studySessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         progressService.logStudySession(userId, new com.dts.progress.dto.request.LogStudySessionRequest(
-                "PRACTICE", "B2", "PRACTICE", UUID.randomUUID(), 10, 8, 2, 300));
+                "PRACTICE", "B2", "PRACTICE", null, 10, 8, 2, 300));
 
         assertEquals(5, userProgress.getCurrentStreak());
         assertEquals(7, userProgress.getLongestStreak());
@@ -95,8 +104,9 @@ class StreakServiceTest {
 
         when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
 
+        when(studySessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         progressService.logStudySession(userId, new com.dts.progress.dto.request.LogStudySessionRequest(
-                "PRACTICE", "B2", "PRACTICE", UUID.randomUUID(), 10, 8, 2, 300));
+                "PRACTICE", "B2", "PRACTICE", null, 10, 8, 2, 300));
 
         assertEquals(1, userProgress.getCurrentStreak());
         assertEquals(10, userProgress.getLongestStreak());
@@ -112,8 +122,9 @@ class StreakServiceTest {
 
         when(userProgressRepository.findByUserId(userId)).thenReturn(Optional.of(userProgress));
 
+        when(studySessionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         progressService.logStudySession(userId, new com.dts.progress.dto.request.LogStudySessionRequest(
-                "PRACTICE", "B2", "PRACTICE", UUID.randomUUID(), 10, 8, 2, 300));
+                "PRACTICE", "B2", "PRACTICE", null, 10, 8, 2, 300));
 
         assertEquals(6, userProgress.getCurrentStreak());
         assertEquals(6, userProgress.getLongestStreak());

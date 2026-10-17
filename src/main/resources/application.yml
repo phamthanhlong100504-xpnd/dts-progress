@@ -97,4 +97,8 @@ eureka:
     enabled: ${EUREKA_ENABLED:false}
   instance:
     prefer-ip-address: true
+practice:
+  service-url: ${PRACTICE_SERVICE_URL:http://localhost:8087}
+progress:
+  internal-key: ${EXAM_PROGRESS_INTERNAL_KEY:}
 

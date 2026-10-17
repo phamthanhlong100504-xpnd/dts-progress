@@ -47,6 +47,10 @@ public class SecurityConfig {
                 .requestMatchers("/api-docs", "/api-docs/**", "/v3/api-docs", "/v3/api-docs/**",
                         "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Only these internal POSTs bypass JWT; both verify the shared key.
+                .requestMatchers(HttpMethod.POST,
+                        "/internal/v1/practice/exam-results",
+                        "/internal/v1/practice/question-progress").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtValidationFilter, UsernamePasswordAuthenticationFilter.class);

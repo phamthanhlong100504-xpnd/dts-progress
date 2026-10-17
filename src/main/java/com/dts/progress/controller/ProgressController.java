@@ -70,8 +70,11 @@ public class ProgressController {
     @Operation(summary = "Log a study or exam session")
     public ApiResponse<SessionHistoryResponse> logSession(
             @AuthenticationPrincipal JwtUserDetails user,
+            @RequestHeader(value = "Authorization", required = false)
+            String authorization,
             @Valid @RequestBody LogStudySessionRequest request) {
-        return ApiResponse.ok(progressService.logStudySession(user.userId(), request));
+        return ApiResponse.ok(progressService.logStudySession(
+                user.userId(), request, authorization));
     }
 
     @GetMapping("/history")
