@@ -41,3 +41,14 @@ postman/
 
 # Ops/verification scripts — contain VPS credentials & JWT secrets in plaintext
 scripts/
+
+# Local environment, handoffs and generated diagnostics.
+.env.*
+!.env.example
+/bin/
+/handoff/
+/_local/
+/hs_err_pid*.log
+/replay_pid*.log
+__pycache__/
+*.py[cod]

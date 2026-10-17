@@ -1,0 +1,3 @@
+# Preserve the two new reviewed SQL files without renormalizing V1.
+src/main/resources/db/migration/V2__unique_exam_progress.sql -text
+src/main/resources/db/migration/V3__question_learning_projection.sql -text
