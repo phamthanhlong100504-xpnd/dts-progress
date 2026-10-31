@@ -48,3 +48,7 @@ Percent=Math.round(100f*count/total), total0 trả0. Status NOT_STARTED khi coun
 - Query/header bắt buộc cần gửi đủ; không suy ra mọi lỗi binding có cùng errorCode với service validation.
 
 Nguồn: [LearningOverviewController](../../src/main/java/com/dts/progress/controller/LearningOverviewController.java), [LearningOverviewService](../../src/main/java/com/dts/progress/service/LearningOverviewService.java), [PracticeLearningBankClient](../../src/main/java/com/dts/progress/service/PracticeLearningBankClient.java), [DTO](../../src/main/java/com/dts/progress/dto/response/LearningOverviewResponse.java).
+
+## Authorization cập nhật ngày 31 tháng 10 năm 2026
+
+Các API người dùng trong trang này phải có quyền tương ứng trong [ma trận authorization](authorization.md): GET dùng `progress:read`; PATCH chapters, POST sessions và PUT preference dùng `progress:update`. Hai POST ingress vẫn dùng shared key riêng, không dùng permission học viên. Giữ ownership, DTO và nghiệp vụ đã mô tả. Blueprint từng endpoint trong [mục lục](README.md) bổ sung Part 0–4.

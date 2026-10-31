@@ -45,3 +45,7 @@ Projection không tự tạo study session/tăng exam counter hoặc sửa chapt
 403 INTERNAL_AUTH_REQUIRED khi key thiếu/rỗng/sai. 400 BAD_REQUEST khi JSON hoặc validation event sai. Lỗi DB ngoài mapping có thể500 SYS-500; không che lỗi bằng accepted=true trước khi transaction ghi xong.
 
 Nguồn: [Ingress controller](../../src/main/java/com/dts/progress/controller/PracticeQuestionProgressIngressController.java), [Projection service](../../src/main/java/com/dts/progress/service/QuestionLearningProjectionService.java), [Event DTO](../../src/main/java/com/dts/progress/dto/event/PracticeQuestionProgressEvent.java), [V3](../../src/main/resources/db/migration/V3__question_learning_projection.sql).
+
+## Authorization cập nhật ngày 31 tháng 10 năm 2026
+
+Các API người dùng trong trang này phải có quyền tương ứng trong [ma trận authorization](authorization.md): GET dùng `progress:read`; PATCH chapters, POST sessions và PUT preference dùng `progress:update`. Hai POST ingress vẫn dùng shared key riêng, không dùng permission học viên. Giữ ownership, DTO và nghiệp vụ đã mô tả. Blueprint từng endpoint trong [mục lục](README.md) bổ sung Part 0–4.

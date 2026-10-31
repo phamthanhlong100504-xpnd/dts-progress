@@ -4,6 +4,7 @@ import com.dts.progress.dto.request.UpdateProgramRequest;
 import com.dts.progress.security.JwtUserDetails;
 import com.dts.progress.service.UserPreferenceService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,7 @@ public class UserPreferenceController {
     }
 
     @PutMapping("/learning-program")
+    @PreAuthorize("hasAuthority('PERM_progress:update')")
     public ResponseEntity<Void> updateProgram(
             @AuthenticationPrincipal JwtUserDetails userDetails,
             @RequestBody UpdateProgramRequest request) {

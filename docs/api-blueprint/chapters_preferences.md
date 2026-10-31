@@ -27,3 +27,7 @@ Bearer, body {"programCode":"A1"}, trả200 body rỗng. Controller không dùng
 UserPreferenceService lưu Redis key user:<UUID>:program và publish channel:user_program_events với userId/program. Không có TTL được set ở nhánh này. Không tự ghi Identity.users.selected_license_class hoặc tạo migration. Đổi GPLX hồ sơ chuẩn thuộc /api/v1/users/me/license của Identity.
 
 Nguồn: [ProgressController](../../src/main/java/com/dts/progress/controller/ProgressController.java), [ProgressService](../../src/main/java/com/dts/progress/service/ProgressService.java), [Preference controller](../../src/main/java/com/dts/progress/controller/UserPreferenceController.java), [Preference service](../../src/main/java/com/dts/progress/service/UserPreferenceService.java), [Mapper](../../src/main/java/com/dts/progress/mapper/ProgressMapper.java).
+
+## Authorization cập nhật ngày 31 tháng 10 năm 2026
+
+Các API người dùng trong trang này phải có quyền tương ứng trong [ma trận authorization](authorization.md): GET dùng `progress:read`; PATCH chapters, POST sessions và PUT preference dùng `progress:update`. Hai POST ingress vẫn dùng shared key riêng, không dùng permission học viên. Giữ ownership, DTO và nghiệp vụ đã mô tả. Blueprint từng endpoint trong [mục lục](README.md) bổ sung Part 0–4.

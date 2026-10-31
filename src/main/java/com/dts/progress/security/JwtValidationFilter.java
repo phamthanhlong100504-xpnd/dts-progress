@@ -65,9 +65,10 @@ public class JwtValidationFilter extends OncePerRequestFilter {
             if (roles == null) roles = Collections.emptyList();
             if (permissions == null) permissions = Collections.emptyList();
 
-            List<SimpleGrantedAuthority> authorities = roles.stream()
-                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-                    .toList();
+            List<SimpleGrantedAuthority> authorities =
+                    JwtAuthorityMapper.authorityNames(roles, permissions).stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .toList();
 
             JwtUserDetails userDetails = new JwtUserDetails(userId, username, roles, permissions);
 

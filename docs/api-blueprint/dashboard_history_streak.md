@@ -32,3 +32,7 @@ Item gồm id, examId, sessionType, examType, mode, status, questionsCount, corr
 Phiên có examId được lấy từ Practice receipt hoặc ingress, upsert theo V2. Phiên không examId giữ cách ghi legacy. averageScore, passRate, số câu đã học projection có phạm vi khác nhau; dùng đúng tên/nguồn server, không recompute một KPI bằng nguồn của KPI khác.
 
 Nguồn: [ProgressController](../../src/main/java/com/dts/progress/controller/ProgressController.java), [ProgressService](../../src/main/java/com/dts/progress/service/ProgressService.java), [Dashboard DTO](../../src/main/java/com/dts/progress/dto/response/DashboardResponse.java), [Session DTO](../../src/main/java/com/dts/progress/dto/response/SessionHistoryResponse.java).
+
+## Authorization cập nhật ngày 31 tháng 10 năm 2026
+
+Các API người dùng trong trang này phải có quyền tương ứng trong [ma trận authorization](authorization.md): GET dùng `progress:read`; PATCH chapters, POST sessions và PUT preference dùng `progress:update`. Hai POST ingress vẫn dùng shared key riêng, không dùng permission học viên. Giữ ownership, DTO và nghiệp vụ đã mô tả. Blueprint từng endpoint trong [mục lục](README.md) bổ sung Part 0–4.

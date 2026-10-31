@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +32,7 @@ public class ProgressController {
 
     @GetMapping("/dashboard")
     @Operation(summary = "Get user's learning dashboard with overall statistics")
+    @PreAuthorize("hasAuthority('PERM_progress:read')")
     public ApiResponse<DashboardResponse> getDashboard(
             @AuthenticationPrincipal JwtUserDetails user) {
         return ApiResponse.ok(progressService.getDashboard(user.userId()));
@@ -40,6 +42,7 @@ public class ProgressController {
 
     @GetMapping("/chapters")
     @Operation(summary = "Get progress for all chapters")
+    @PreAuthorize("hasAuthority('PERM_progress:read')")
     public ApiResponse<List<ChapterProgressResponse>> getChapterProgress(
             @AuthenticationPrincipal JwtUserDetails user) {
         return ApiResponse.ok(progressService.getChapterProgress(user.userId()));
@@ -48,6 +51,7 @@ public class ProgressController {
     @PatchMapping("/chapters")
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Update progress for a chapter (record answers)")
+    @PreAuthorize("hasAuthority('PERM_progress:update')")
     public ApiResponse<ChapterProgressResponse> updateChapterProgress(
             @AuthenticationPrincipal JwtUserDetails user,
             @Valid @RequestBody UpdateChapterProgressRequest request) {
@@ -58,6 +62,7 @@ public class ProgressController {
 
     @GetMapping("/streaks")
     @Operation(summary = "Get study streak information")
+    @PreAuthorize("hasAuthority('PERM_progress:read')")
     public ApiResponse<StreakResponse> getStreak(
             @AuthenticationPrincipal JwtUserDetails user) {
         return ApiResponse.ok(progressService.getStreak(user.userId()));
@@ -68,6 +73,7 @@ public class ProgressController {
     @PostMapping("/sessions")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Log a study or exam session")
+    @PreAuthorize("hasAuthority('PERM_progress:update')")
     public ApiResponse<SessionHistoryResponse> logSession(
             @AuthenticationPrincipal JwtUserDetails user,
             @RequestHeader(value = "Authorization", required = false)
@@ -79,6 +85,7 @@ public class ProgressController {
 
     @GetMapping("/history")
     @Operation(summary = "Get study session history (paginated)")
+    @PreAuthorize("hasAuthority('PERM_progress:read')")
     public ApiResponse<Page<SessionHistoryResponse>> getHistory(
             @AuthenticationPrincipal JwtUserDetails user,
             Pageable pageable) {
@@ -87,6 +94,7 @@ public class ProgressController {
 
     @GetMapping("/recent")
     @Operation(summary = "Get recent study sessions")
+    @PreAuthorize("hasAuthority('PERM_progress:read')")
     public ApiResponse<List<SessionHistoryResponse>> getRecent(
             @AuthenticationPrincipal JwtUserDetails user,
             @RequestParam(defaultValue = "10") int limit) {

@@ -63,3 +63,7 @@ Practice catalog/receipt client có connect timeout2 giây, read timeout5 giây;
 ## 8. Dữ liệu môi trường và thay đổi tiếp theo
 
 Git mang theo source/migration/template; credential, user data, receipt và tiến độ thật thuộc môi trường. Đợt chuẩn bị Git không chạy database, Kafka, Redis, API hay build, không sửa logic/streak/grade/constraints. Mọi schema thay đổi tiếp theo tạo version migration mới tại repo sở hữu dữ liệu.
+
+## Authorization API người dùng
+
+Bản bổ sung phân quyền map role/permission từ JWT sang authority, áp progress:read cho 6 API GET và progress:update cho 3 API ghi người dùng. Hai ingress nội bộ giữ shared key. Không thay công thức, DTO hoặc schema Progress. [Ma trận quyền](api-blueprint/authorization.md) và blueprint từng endpoint mô tả contract hiện tại.

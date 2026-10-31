@@ -51,3 +51,7 @@ Giữ logic legacy tạo session và cộng tổng cho mỗi POST; không có id
 Key sai/rỗng →403 INTERNAL_AUTH_REQUIRED; JSON event sai →400 BAD_REQUEST; event vi phạm canonical validation →400 BAD_REQUEST. Không gắn internal key thật vào tài liệu hoặc gọi ingress bằng account người dùng để thử ghi dữ liệu khi chuẩn bị Git.
 
 Nguồn: [ProgressService](../../src/main/java/com/dts/progress/service/ProgressService.java), [CanonicalExamProgressService](../../src/main/java/com/dts/progress/service/CanonicalExamProgressService.java), [Receipt client](../../src/main/java/com/dts/progress/service/PracticeProgressReceiptClient.java), [Ingress](../../src/main/java/com/dts/progress/controller/PracticeExamProgressIngressController.java).
+
+## Authorization cập nhật ngày 31 tháng 10 năm 2026
+
+Các API người dùng trong trang này phải có quyền tương ứng trong [ma trận authorization](authorization.md): GET dùng `progress:read`; PATCH chapters, POST sessions và PUT preference dùng `progress:update`. Hai POST ingress vẫn dùng shared key riêng, không dùng permission học viên. Giữ ownership, DTO và nghiệp vụ đã mô tả. Blueprint từng endpoint trong [mục lục](README.md) bổ sung Part 0–4.
