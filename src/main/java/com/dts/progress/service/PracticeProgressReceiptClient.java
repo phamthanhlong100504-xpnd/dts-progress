@@ -3,6 +3,7 @@ package com.dts.progress.service;
 import com.dts.progress.dto.event.PracticeExamFinishedEvent;
 import com.dts.progress.exception.BusinessException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -14,16 +15,19 @@ import org.springframework.web.client.RestClientResponseException;
 import java.time.Instant;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class PracticeProgressReceiptClient {
 
     private final RestClient restClient;
+    private final String practiceUrl;
 
     public PracticeProgressReceiptClient(
             RestClient.Builder builder,
             @Value("${practice.service-url:http://localhost:8087}")
             String practiceUrl
     ) {
+        this.practiceUrl = practiceUrl;
         SimpleClientHttpRequestFactory factory =
                 new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
@@ -96,6 +100,8 @@ public class PracticeProgressReceiptClient {
                     receipt.completedAt()
             );
         } catch (RestClientResponseException error) {
+            log.error("Practice receipt call failed with status {} from {}: {}",
+                    error.getStatusCode(), practiceUrl, error.getResponseBodyAsString());
             int status = error.getStatusCode().value();
 
             if (status == 400 || status == 409) {
@@ -122,6 +128,7 @@ public class PracticeProgressReceiptClient {
                     HttpStatus.BAD_GATEWAY
             );
         } catch (RestClientException error) {
+            log.error("Failed to connect to Practice service at {}: {}", practiceUrl, error.getMessage());
             throw BusinessException.of(
                     "PRACTICE_UNAVAILABLE",
                     "Practice service is unavailable",

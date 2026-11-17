@@ -3,6 +3,7 @@ package com.dts.progress.service;
 import com.dts.progress.dto.response.LearningBankCatalogResponse;
 import com.dts.progress.exception.BusinessException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -11,15 +12,18 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+@Slf4j
 @Component
 public class PracticeLearningBankClient {
 
     private final RestClient client;
+    private final String practiceUrl;
 
     public PracticeLearningBankClient(
             RestClient.Builder builder,
             @Value("${practice.service-url:http://localhost:8087}") String practiceUrl
     ) {
+        this.practiceUrl = practiceUrl;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
         factory.setReadTimeout(5000);
@@ -50,6 +54,8 @@ public class PracticeLearningBankClient {
             }
             return response.data();
         } catch (RestClientResponseException error) {
+            log.error("Practice catalog call failed with status {} from {}: {}",
+                    error.getStatusCode(), practiceUrl, error.getResponseBodyAsString());
             if (error.getStatusCode().value() == 400) {
                 throw BusinessException.badRequest("Invalid license class");
             }
@@ -60,6 +66,7 @@ public class PracticeLearningBankClient {
             throw BusinessException.of("PRACTICE_UNAVAILABLE",
                     "Practice question bank is unavailable", HttpStatus.BAD_GATEWAY);
         } catch (RestClientException error) {
+            log.error("Failed to connect to Practice catalog at {}: {}", practiceUrl, error.getMessage());
             throw BusinessException.of("PRACTICE_UNAVAILABLE",
                     "Practice question bank is unavailable", HttpStatus.BAD_GATEWAY);
         }
