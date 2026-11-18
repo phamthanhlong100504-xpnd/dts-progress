@@ -83,11 +83,12 @@ jobs:
           JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
           KAFKA_HOST: ${{ secrets.KAFKA_HOST }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXAM_PROGRESS_INTERNAL_KEY: ${{ secrets.EXAM_PROGRESS_INTERNAL_KEY || 'dts-internal-secret-progress-2024' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          envs: DB_PASSWORD,JWT_ACCESS_SECRET,KAFKA_HOST,GITHUB_TOKEN
+          envs: DB_PASSWORD,JWT_ACCESS_SECRET,KAFKA_HOST,GITHUB_TOKEN,EXAM_PROGRESS_INTERNAL_KEY
           script: |
             docker network create dts-network || true
             cd ${{ env.DEPLOY_DIR }}
@@ -98,6 +99,7 @@ jobs:
             echo "DB_PASSWORD=$DB_PASSWORD" >> .env
             echo "JWT_ACCESS_SECRET=$JWT_ACCESS_SECRET" >> .env
             echo "KAFKA_HOST=$KAFKA_HOST" >> .env
+            echo "EXAM_PROGRESS_INTERNAL_KEY=$EXAM_PROGRESS_INTERNAL_KEY" >> .env
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u $GITHUB_OWNER --password-stdin
             docker compose pull
             docker compose up -d

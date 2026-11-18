@@ -17,6 +17,7 @@ services:
       - JWT_ISSUER=dts-identity-service
       - IDENTITY_SERVICE_URL=http://identity-service:8081
       - PRACTICE_SERVICE_URL=${PRACTICE_SERVICE_URL:-http://dts-practice-service:8087}
+      - EXAM_PROGRESS_INTERNAL_KEY=${EXAM_PROGRESS_INTERNAL_KEY:-dts-internal-secret-progress-2024}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_URI=${EUREKA_URI:-http://eureka-server:8761/eureka}
       - EUREKA_ENABLED=${EUREKA_ENABLED:-false}
