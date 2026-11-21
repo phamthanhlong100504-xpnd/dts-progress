@@ -62,4 +62,33 @@ public final class LearnerProgressModels {
             int total,
             List<WrongItem> questions
     ) {}
+
+    public record ChapterOverviewItem(
+            int chapterId,
+            int totalQuestions,
+            int learnedQuestions,
+            double completionPercent,
+            String status,
+            Integer lastQuestionId,
+            Integer resumeQuestionId,
+            String lastStudiedAt
+    ) {}
+
+    public record ChapterOverview(
+            String licenseClass,
+            String bankVersion,
+            int totalQuestions,
+            int learnedQuestions,
+            double completionPercent,
+            List<ChapterOverviewItem> chapters
+    ) {}
+
+    public record AnswerRecordResponse(
+            int questionId,
+            String selectedAnswer,
+            boolean isCorrect,
+            String correctAnswer,
+            String explanation,
+            String answeredAt
+    ) {}
 }

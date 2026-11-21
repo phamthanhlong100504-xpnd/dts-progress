@@ -17,6 +17,76 @@ public class LearnerStudyProgressService {
     private final JdbcTemplate jdbc;
     private static final String DEFAULT_BANK = "dts-2026-600-v1";
 
+    // Standard theory chapter question counts (A1..B2)
+    private static final Map<Integer, Integer> CHAPTER_COUNTS = Map.of(
+            1, 166,
+            2, 26,
+            3, 74,
+            4, 35,
+            5, 115,
+            6, 184
+    );
+
+    @Transactional(readOnly = true)
+    public ChapterOverview getChapterOverview(UUID userId, String licenseClass) {
+        String license = normalize(licenseClass);
+
+        Map<Integer, Integer> learnedMap = new HashMap<>();
+        jdbc.query("""
+            SELECT chapter_id, COUNT(*)
+            FROM user_question_progress
+            WHERE user_id = ? AND license_class = ? AND (chapter_learned IS TRUE OR selected_answer IS NOT NULL)
+            GROUP BY chapter_id
+        """, rs -> {
+            learnedMap.put(rs.getInt(1), rs.getInt(2));
+        }, userId, license);
+
+        Map<Integer, LearningCursor> cursorMap = new HashMap<>();
+        jdbc.query("""
+            SELECT chapter_id, last_question_id, last_studied_at
+            FROM learning_cursors
+            WHERE user_id = ? AND license_class = ?
+        """, rs -> {
+            int ch = rs.getInt(1);
+            int qId = rs.getInt(2);
+            cursorMap.put(ch, new LearningCursor(
+                    ch,
+                    qId > 0 ? qId : null,
+                    qId > 0 ? qId : null,
+                    formatTs(rs.getObject(3, OffsetDateTime.class))
+            ));
+        }, userId, license);
+
+        List<ChapterOverviewItem> chapters = new ArrayList<>();
+        int totalAll = 0;
+        int learnedAll = 0;
+
+        for (int ch = 1; ch <= 6; ch++) {
+            int total = CHAPTER_COUNTS.getOrDefault(ch, 0);
+            int learned = Math.min(learnedMap.getOrDefault(ch, 0), total);
+            totalAll += total;
+            learnedAll += learned;
+
+            double pct = total > 0 ? Math.round(((double) learned / total) * 1000.0) / 10.0 : 0.0;
+            String status = learned == 0 ? "NOT_STARTED" : (learned >= total ? "COMPLETED" : "IN_PROGRESS");
+            LearningCursor cur = cursorMap.get(ch);
+
+            chapters.add(new ChapterOverviewItem(
+                    ch,
+                    total,
+                    learned,
+                    pct,
+                    status,
+                    cur != null ? cur.lastQuestionId() : null,
+                    cur != null ? cur.resumeQuestionId() : null,
+                    cur != null ? cur.lastStudiedAt() : null
+            ));
+        }
+
+        double totalPct = totalAll > 0 ? Math.round(((double) learnedAll / totalAll) * 1000.0) / 10.0 : 0.0;
+        return new ChapterOverview(license, DEFAULT_BANK, totalAll, learnedAll, totalPct, chapters);
+    }
+
     @Transactional(readOnly = true)
     public List<LearnedAnswer> getChapterAnswers(UUID userId, String licenseClass, int chapterId) {
         String license = normalize(licenseClass);
@@ -100,6 +170,46 @@ public class LearnerStudyProgressService {
         """, userId, license, DEFAULT_BANK, questionId, chapterId, bookmarked, now, now);
 
         return new BookmarkResponse(chapterId, questionId, license, bookmarked);
+    }
+
+    @Transactional
+    public AnswerRecordResponse recordChapterAnswer(
+            UUID userId, String licenseClass, int chapterId, int questionId,
+            String selectedAnswer, boolean isCorrect, String correctAnswer, String explanation
+    ) {
+        String license = normalize(licenseClass);
+        OffsetDateTime now = OffsetDateTime.now();
+
+        jdbc.update("""
+            INSERT INTO user_question_progress (
+                user_id, license_class, bank_version, question_id, chapter_id,
+                selected_answer, is_correct, chapter_learned, last_answered_at, last_studied_at,
+                last_wrong_answer, last_wrong_at, needs_review
+            ) VALUES (
+                ?, ?, ?, ?, ?,
+                ?, ?, true, ?, ?,
+                CASE WHEN ? THEN NULL ELSE ? END,
+                CASE WHEN ? THEN NULL ELSE ? END,
+                NOT ?
+            )
+            ON CONFLICT (user_id, license_class, bank_version, question_id) DO UPDATE SET
+                selected_answer = EXCLUDED.selected_answer,
+                is_correct = EXCLUDED.is_correct,
+                chapter_learned = true,
+                last_answered_at = EXCLUDED.last_answered_at,
+                last_studied_at = EXCLUDED.last_studied_at,
+                last_wrong_answer = CASE WHEN EXCLUDED.is_correct THEN user_question_progress.last_wrong_answer ELSE EXCLUDED.selected_answer END,
+                last_wrong_at = CASE WHEN EXCLUDED.is_correct THEN user_question_progress.last_wrong_at ELSE EXCLUDED.last_answered_at END,
+                needs_review = NOT EXCLUDED.is_correct
+        """, userId, license, DEFAULT_BANK, questionId, chapterId,
+             selectedAnswer, isCorrect, now, now,
+             isCorrect, selectedAnswer,
+             isCorrect, now,
+             isCorrect);
+
+        return new AnswerRecordResponse(
+                questionId, selectedAnswer, isCorrect, correctAnswer, explanation, formatTs(now)
+        );
     }
 
     @Transactional(readOnly = true)
