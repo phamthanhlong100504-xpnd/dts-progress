@@ -161,9 +161,9 @@ public class LearnerStudyProgressService {
 
         jdbc.update("""
             INSERT INTO user_question_progress (
-                user_id, license_class, bank_version, question_id, chapter_id,
+                user_id, license_class, bank_version, question_id, chapter_id, is_critical,
                 is_bookmarked, bookmarked_at, last_studied_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, false, ?, ?, ?)
             ON CONFLICT (user_id, license_class, bank_version, question_id) DO UPDATE SET
                 is_bookmarked = EXCLUDED.is_bookmarked,
                 bookmarked_at = CASE WHEN EXCLUDED.is_bookmarked THEN EXCLUDED.bookmarked_at ELSE user_question_progress.bookmarked_at END
@@ -177,22 +177,35 @@ public class LearnerStudyProgressService {
             UUID userId, String licenseClass, int chapterId, int questionId,
             String selectedAnswer, boolean isCorrect, String correctAnswer, String explanation
     ) {
+        return recordChapterAnswer(userId, licenseClass, chapterId, questionId, selectedAnswer, isCorrect, correctAnswer, explanation, false);
+    }
+
+    @Transactional
+    public AnswerRecordResponse recordChapterAnswer(
+            UUID userId, String licenseClass, int chapterId, int questionId,
+            String selectedAnswer, boolean isCorrect, String correctAnswer, String explanation,
+            boolean isCritical
+    ) {
         String license = normalize(licenseClass);
         OffsetDateTime now = OffsetDateTime.now();
 
         jdbc.update("""
             INSERT INTO user_question_progress (
-                user_id, license_class, bank_version, question_id, chapter_id,
-                selected_answer, is_correct, chapter_learned, last_answered_at, last_studied_at,
+                user_id, license_class, bank_version, question_id, chapter_id, is_critical,
+                selected_answer, is_correct, chapter_learned, critical_learned, last_answered_at, last_studied_at,
                 last_wrong_answer, last_wrong_at, needs_review
             ) VALUES (
-                ?, ?, ?, ?, ?,
-                ?, ?, true, ?, ?,
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, true, ?, ?, ?,
                 CASE WHEN ? THEN NULL ELSE ? END,
                 CASE WHEN ? THEN NULL ELSE ? END,
                 NOT ?
             )
             ON CONFLICT (user_id, license_class, bank_version, question_id) DO UPDATE SET
+                is_critical = CASE WHEN user_question_progress.is_critical IS TRUE THEN TRUE ELSE EXCLUDED.is_critical END,
+                critical_learned = CASE WHEN (user_question_progress.is_critical IS TRUE OR EXCLUDED.is_critical IS TRUE)
+                                        THEN (EXCLUDED.is_correct OR user_question_progress.critical_learned)
+                                        ELSE user_question_progress.critical_learned END,
                 selected_answer = EXCLUDED.selected_answer,
                 is_correct = EXCLUDED.is_correct,
                 chapter_learned = true,
@@ -201,8 +214,8 @@ public class LearnerStudyProgressService {
                 last_wrong_answer = CASE WHEN EXCLUDED.is_correct THEN user_question_progress.last_wrong_answer ELSE EXCLUDED.selected_answer END,
                 last_wrong_at = CASE WHEN EXCLUDED.is_correct THEN user_question_progress.last_wrong_at ELSE EXCLUDED.last_answered_at END,
                 needs_review = NOT EXCLUDED.is_correct
-        """, userId, license, DEFAULT_BANK, questionId, chapterId,
-             selectedAnswer, isCorrect, now, now,
+        """, userId, license, DEFAULT_BANK, questionId, chapterId, isCritical,
+             selectedAnswer, isCorrect, (isCritical && isCorrect), now, now,
              isCorrect, selectedAnswer,
              isCorrect, now,
              isCorrect);

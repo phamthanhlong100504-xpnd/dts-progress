@@ -62,9 +62,10 @@ public class LearnerStudyProgressController {
         String correctAnswer = String.valueOf(body.getOrDefault("correctAnswer", ""));
         String explanation = body.containsKey("explanation") && body.get("explanation") != null
                 ? String.valueOf(body.get("explanation")) : null;
+        boolean isCritical = Boolean.TRUE.equals(body.get("isCritical"));
 
         return ApiResponse.ok(progressService.recordChapterAnswer(
-                user.userId(), license, chapterId, questionId, selectedAnswer, isCorrect, correctAnswer, explanation
+                user.userId(), license, chapterId, questionId, selectedAnswer, isCorrect, correctAnswer, explanation, isCritical
         ));
     }
 
