@@ -154,6 +154,17 @@ public class LearnerStudyProgressService {
         return new Bookmarks(chapterId, license, ids);
     }
 
+    @Transactional(readOnly = true)
+    public List<Integer> getAllBookmarks(UUID userId, String licenseClass) {
+        String license = normalize(licenseClass);
+        return jdbc.queryForList("""
+            SELECT question_id
+            FROM user_question_progress
+            WHERE user_id = ? AND license_class = ? AND is_bookmarked IS TRUE
+            ORDER BY question_id ASC
+        """, Integer.class, userId, license);
+    }
+
     @Transactional
     public BookmarkResponse setBookmark(UUID userId, String licenseClass, int chapterId, int questionId, boolean bookmarked) {
         String license = normalize(licenseClass);
