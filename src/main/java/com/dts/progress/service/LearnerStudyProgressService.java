@@ -243,9 +243,32 @@ public class LearnerStudyProgressService {
             formatTs(rs.getObject(6, OffsetDateTime.class))
         ), userId, license);
 
-        int total = questions.size();
-        int learned = (int) questions.stream().filter(CriticalItem::learned).count();
-        return new CriticalOverview(total, learned, total - learned, questions);
+        int totalQuestions = 60;
+        int learnedQuestions = (int) questions.stream().filter(CriticalItem::learned).count();
+        double completionPercent = Math.round((double) learnedQuestions / totalQuestions * 100.0);
+        int currentPosition = questions.isEmpty() ? 1 : Math.min(learnedQuestions + 1, totalQuestions);
+        boolean hasProgress = learnedQuestions > 0;
+        boolean completed = learnedQuestions >= totalQuestions;
+        String lastStudiedAt = questions.stream()
+                .map(CriticalItem::lastStudiedAt)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        return new CriticalOverview(
+                license,
+                totalQuestions,
+                learnedQuestions,
+                totalQuestions,
+                learnedQuestions,
+                totalQuestions - learnedQuestions,
+                completionPercent,
+                currentPosition,
+                hasProgress,
+                completed,
+                lastStudiedAt,
+                questions
+        );
     }
 
     @Transactional(readOnly = true)
@@ -266,7 +289,16 @@ public class LearnerStudyProgressService {
             formatTs(rs.getObject(6, OffsetDateTime.class))
         ), userId, license);
 
-        return new WrongOverview(questions.size(), questions);
+        int totalWrong = questions.size();
+        boolean hasWrong = totalWrong > 0;
+        return new WrongOverview(
+                license,
+                totalWrong,
+                hasWrong,
+                totalWrong,
+                totalWrong,
+                questions
+        );
     }
 
     private static String normalize(String licenseClass) {

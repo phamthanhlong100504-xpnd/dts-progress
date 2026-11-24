@@ -144,17 +144,28 @@ public class LearnerStudyProgressController {
 
     // 5. Wrong questions
     @GetMapping({
-            "/api/v1/progress/wrong",
-            "/api/v1/questions/wrong",
-            "/api/v1/questions/wrong/overview",
-            "/api/v1/progress/wrong/overview"
+            "/api/v1/progress/wrong/overview",
+            "/api/v1/questions/wrong/overview"
     })
     @PreAuthorize("hasAuthority('PERM_progress:read')")
-    @Operation(summary = "Lấy danh sách các câu làm sai cần ôn lại")
+    @Operation(summary = "Lấy tổng quan các câu làm sai cần ôn lại")
     public ApiResponse<WrongOverview> getWrongOverview(
             @AuthenticationPrincipal JwtUserDetails user,
             @RequestParam(defaultValue = "B2") String licenseClass
     ) {
         return ApiResponse.ok(progressService.getWrongOverview(user.userId(), licenseClass));
+    }
+
+    @GetMapping({
+            "/api/v1/progress/wrong",
+            "/api/v1/questions/wrong"
+    })
+    @PreAuthorize("hasAuthority('PERM_progress:read')")
+    @Operation(summary = "Lấy danh sách các câu làm sai cần ôn lại")
+    public ApiResponse<List<WrongItem>> getWrongQuestionsList(
+            @AuthenticationPrincipal JwtUserDetails user,
+            @RequestParam(defaultValue = "B2") String licenseClass
+    ) {
+        return ApiResponse.ok(progressService.getWrongOverview(user.userId(), licenseClass).questions());
     }
 }

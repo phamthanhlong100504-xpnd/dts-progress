@@ -43,9 +43,17 @@ public final class LearnerProgressModels {
     ) {}
 
     public record CriticalOverview(
+            String licenseClass,
+            int totalQuestions,
+            int learnedQuestions,
             int total,
             int learned,
             int unlearned,
+            double completionPercent,
+            int currentPosition,
+            boolean hasProgress,
+            boolean completed,
+            String lastStudiedAt,
             List<CriticalItem> questions
     ) {}
 
@@ -59,7 +67,11 @@ public final class LearnerProgressModels {
     ) {}
 
     public record WrongOverview(
+            String licenseClass,
+            int totalWrongQuestions,
+            boolean hasWrongQuestions,
             int total,
+            int totalWrong,
             List<WrongItem> questions
     ) {}
 
